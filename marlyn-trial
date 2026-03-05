@@ -1,0 +1,343 @@
+# =============================================================================
+# UCU BUDGET TRACKER - SYE3209 SOFTWARE CONSTRUCTION
+# Year 3, Semester 2 | Department of Computing & Technology
+# =============================================================================
+# This program demonstrates the following OOD principles:
+#   1. Single Responsibility Principle (SRP)
+#   2. Encapsulation
+#   3. Abstraction
+#   4. DRY - Don't Repeat Yourself
+#   5. Separation of Concerns (SoC)
+#   6. KISS - Keep It Simple
+# =============================================================================
+
+
+# -----------------------------------------------------------------------------
+# OOD PRINCIPLE: SINGLE RESPONSIBILITY PRINCIPLE (SRP)
+# -----------------------------------------------------------------------------
+# This class has ONE job only — to hold the details of a single transaction.
+# It does not calculate totals. It does not print anything. It does not check
+# the budget. It simply stores a description and an amount. That is all.
+# If we ever need to change what a transaction looks like (e.g. add a date),
+# we only come to THIS class. Nothing else needs to change.
+# -----------------------------------------------------------------------------
+
+class Transaction:
+    """Represents a single financial transaction with a description and amount."""
+
+    def __init__(self, description, amount):
+        # OOD PRINCIPLE: ENCAPSULATION
+        # These two values are the internal data of this class.
+        # We use the underscore to signal they belong to this class.
+        self._description = description
+        self._amount = amount
+
+    # OOD PRINCIPLE: ABSTRACTION
+    # Instead of accessing _description and _amount directly from outside,
+    # other parts of the program use these clean, simple methods.
+    # The outside world doesn't need to know HOW the data is stored inside.
+
+    def get_description(self):
+        return self._description
+
+    def get_amount(self):
+        return self._amount
+
+    def __str__(self):
+        # This makes printing a transaction clean and readable
+        return f"  - {self._description}: UGX {self._amount:,.0f}"
+
+
+# -----------------------------------------------------------------------------
+# OOD PRINCIPLE: SINGLE RESPONSIBILITY PRINCIPLE (SRP)
+# -----------------------------------------------------------------------------
+# This class has ONE job — manage all the financial logic.
+# It tracks the budget, stores transactions, updates the running total,
+# and checks if the budget has been breached.
+# It does NOT handle user input. It does NOT print reports.
+# Those are separate concerns handled by separate parts of the program.
+# -----------------------------------------------------------------------------
+
+class BudgetTracker:
+    """Handles all financial logic — tracking expenses and checking the budget."""
+
+    def __init__(self, budget):
+        # OOD PRINCIPLE: ENCAPSULATION
+        # All sensitive financial data is locked inside this class.
+        # Nothing outside can directly change _budget or _total_spent.
+        # The only way to interact with this data is through the methods below.
+        self._budget = budget
+        self._total_spent = 0.0
+        self._transactions = []         # a list to store Transaction objects
+        self._budget_exceeded = False   # flag to track if budget was ever broken
+
+    # OOD PRINCIPLE: ABSTRACTION
+    # The main program just calls add_expense() with a name and amount.
+    # It doesn't need to know that inside this method we are:
+    #   1. Creating a Transaction object
+    #   2. Adding it to the list
+    #   3. Updating the running total
+    #   4. Checking the budget
+    # All that complexity is hidden. The outside world sees a simple action.
+
+    def add_expense(self, description, amount):
+        """Add a new expense and immediately check if budget is exceeded."""
+
+        # Create a Transaction object and store it
+        transaction = Transaction(description, amount)
+        self._transactions.append(transaction)
+
+        # Update the running total
+        self._total_spent += amount
+
+        # OOD PRINCIPLE: DRY — DON'T REPEAT YOURSELF
+        # The budget check happens here, inside add_expense(), ONCE.
+        # We do NOT copy-paste this if-statement after every single input() call
+        # in the main program. It lives here and runs automatically every time
+        # an expense is added, no matter where add_expense() is called from.
+        self._check_budget()
+
+    def _check_budget(self):
+        """Check if total spending has exceeded the budget and warn if so."""
+
+        # OOD PRINCIPLE: SINGLE RESPONSIBILITY (SRP)
+        # This private method has one tiny job — check and warn.
+        # It is private (underscore) because only BudgetTracker needs to call it.
+        # The outside world never calls this directly.
+
+        if self._total_spent > self._budget:
+            self._budget_exceeded = True
+            print("\n" + "!" * 55)
+            print("  ⚠️  WARNING: YOU HAVE EXCEEDED YOUR BUDGET!")
+            print(f"  You have spent UGX {self._total_spent:,.0f} out of")
+            print(f"  your budget of UGX {self._budget:,.0f}")
+            print("!" * 55 + "\n")
+
+    # OOD PRINCIPLE: ABSTRACTION
+    # These getter methods let other parts of the program READ the financial
+    # data without being able to directly CHANGE it.
+    # Clean, controlled access — nothing reaches inside the class directly.
+
+    def get_budget(self):
+        return self._budget
+
+    def get_total_spent(self):
+        return self._total_spent
+
+    def get_transactions(self):
+        return self._transactions
+
+    def get_balance(self):
+        """Return remaining balance (negative means deficit)."""
+        return self._budget - self._total_spent
+
+    def is_over_budget(self):
+        return self._budget_exceeded
+
+
+# -----------------------------------------------------------------------------
+# OOD PRINCIPLE: SINGLE RESPONSIBILITY PRINCIPLE (SRP)
+# OOD PRINCIPLE: SEPARATION OF CONCERNS (SoC)
+# -----------------------------------------------------------------------------
+# This class has ONE job — display the final report.
+# It does not know anything about how expenses were calculated.
+# It does not handle user input.
+# It just takes a BudgetTracker object, reads its data, and prints a report.
+#
+# SEPARATION OF CONCERNS means output (this class) is completely separated
+# from business logic (BudgetTracker) and input (the main program below).
+# If the lecturer wants the report to look different, we ONLY change this class.
+# The financial logic in BudgetTracker stays completely untouched.
+# -----------------------------------------------------------------------------
+
+class ReportGenerator:
+    """Has one job — generate and display the final financial summary report."""
+
+    def __init__(self, tracker):
+        # OOD PRINCIPLE: ENCAPSULATION
+        # We store the tracker reference privately.
+        # This class reads from it but never modifies it.
+        self._tracker = tracker
+
+    def print_report(self):
+        """Print the complete financial summary to the terminal."""
+
+        print("\n")
+        print("=" * 55)
+        print("       FINANCIAL SUMMARY REPORT")
+        print("       UCU Mukono — Personal Budget Tracker")
+        print("=" * 55)
+
+        # --- Budget and Spending Overview ---
+        print(f"\n  Initial Budget:    UGX {self._tracker.get_budget():>12,.0f}")
+        print(f"  Total Spent:       UGX {self._tracker.get_total_spent():>12,.0f}")
+        print("-" * 55)
+
+        # OOD PRINCIPLE: ABSTRACTION
+        # We call get_balance() and is_over_budget() — clean method calls.
+        # We don't reach in and do the maths ourselves here.
+        # BudgetTracker already knows how to calculate these. We just ask it.
+
+        balance = self._tracker.get_balance()
+
+        if self._tracker.is_over_budget():
+            print(f"  DEFICIT:           UGX {abs(balance):>12,.0f}  ❌")
+            print("\n  Status: You overspent this period. Plan better next week!")
+        else:
+            print(f"  Remaining Balance: UGX {balance:>12,.0f}  ✅")
+            print("\n  Status: Well done! You stayed within your budget.")
+
+        # --- Transaction Log ---
+        print("\n" + "-" * 55)
+        print("  TRANSACTION LOG:")
+        print("-" * 55)
+
+        transactions = self._tracker.get_transactions()
+
+        # OOD PRINCIPLE: DRY
+        # We loop through transactions once and print each one cleanly.
+        # The __str__ method on Transaction handles its own formatting.
+        # We don't repeat the formatting logic here — Transaction owns that.
+
+        for i, transaction in enumerate(transactions, 1):
+            print(f"  {i}. {transaction.get_description()}"
+                  f"  —  UGX {transaction.get_amount():,.0f}")
+
+        print("=" * 55)
+        print("       END OF REPORT")
+        print("=" * 55 + "\n")
+
+
+# -----------------------------------------------------------------------------
+# OOD PRINCIPLE: SEPARATION OF CONCERNS (SoC)
+# OOD PRINCIPLE: SINGLE RESPONSIBILITY (SRP)
+# -----------------------------------------------------------------------------
+# This class has ONE job — handle all user input.
+# It does not do financial calculations.
+# It does not print the report.
+# It collects information from the user and returns clean, validated values.
+#
+# Input is completely separated from logic and output.
+# If we ever change how input works (e.g. from keyboard to a file),
+# we only change this class. Nothing else in the program is affected.
+# -----------------------------------------------------------------------------
+
+class InputHandler:
+    """Has one job — collect and validate all input from the user."""
+
+    def get_budget(self):
+        """Ask the user for their budget and return a valid positive number."""
+
+        print("\n" + "=" * 55)
+        print("  Welcome to the UCU Personal Budget Tracker!")
+        print("  Track your spending and stay within your limits.")
+        print("=" * 55)
+
+        while True:
+            try:
+                budget = float(input("\n  Enter your budget for this period (UGX): "))
+                if budget <= 0:
+                    print("  ❌ Budget must be a positive number. Try again.")
+                    continue
+                return budget
+            except ValueError:
+                print("  ❌ Please enter a valid number. Try again.")
+
+    def get_transaction(self, transaction_number):
+        """Ask the user for one transaction's description and amount."""
+
+        print(f"\n  --- Transaction {transaction_number} ---")
+
+        description = input("  Description (e.g. Rolex at Guild Canteen): ").strip()
+
+        while not description:
+            print("  ❌ Description cannot be empty. Try again.")
+            description = input("  Description: ").strip()
+
+        while True:
+            try:
+                amount = float(input(f"  Amount for '{description}' (UGX): "))
+                if amount <= 0:
+                    print("  ❌ Amount must be a positive number. Try again.")
+                    continue
+                return description, amount
+            except ValueError:
+                print("  ❌ Please enter a valid number. Try again.")
+
+    def ask_continue(self):
+        """Ask the user if they want to add another transaction."""
+
+        while True:
+            choice = input("\n  Add another transaction? (yes/no): ").strip().lower()
+            if choice in ("yes", "y"):
+                return True
+            elif choice in ("no", "n"):
+                return False
+            else:
+                print("  ❌ Please type yes or no.")
+
+
+# =============================================================================
+# OOD PRINCIPLE: SEPARATION OF CONCERNS (SoC)
+# OOD PRINCIPLE: KISS — KEEP IT SIMPLE
+# =============================================================================
+# The main() function is the conductor of the program.
+# It coordinates the three concerns — input, logic, and output —
+# but does NONE of the detailed work itself.
+# It simply says: get budget, add expenses, print report.
+# It reads almost like plain English because all complexity is abstracted away
+# into the classes above.
+#
+# KISS — this main function is short and readable. No clever tricks.
+# Anyone can read it and understand the flow of the entire program.
+# =============================================================================
+
+def main():
+
+    # Create our three workers, each with their own responsibility
+    input_handler = InputHandler()      # handles all user input
+    
+    # Get the budget from the user first
+    budget = input_handler.get_budget()
+    
+    tracker = BudgetTracker(budget)     # handles all financial logic
+    report  = ReportGenerator(tracker)  # handles all report output
+
+    print(f"\n  ✅ Budget set to UGX {budget:,.0f}. Let's start tracking!")
+
+    # --- Transaction Entry Loop ---
+    # The specification requires a minimum of 5 transactions.
+    # We enforce the first 5, then give the option to add more.
+
+    MIN_TRANSACTIONS = 5
+    transaction_count = 0
+
+    print(f"\n  You will enter at least {MIN_TRANSACTIONS} transactions.")
+
+    while True:
+        transaction_count += 1
+
+        # InputHandler collects the data (input concern)
+        description, amount = input_handler.get_transaction(transaction_count)
+
+        # BudgetTracker processes the data (logic concern)
+        # This single line triggers: storing, totalling, AND budget checking
+        # That's Abstraction — we don't see any of that complexity here
+        tracker.add_expense(description, amount)
+
+        print(f"  ✅ Logged: {description} — UGX {amount:,.0f}")
+        print(f"     Running total: UGX {tracker.get_total_spent():,.0f}"
+              f" / UGX {tracker.get_budget():,.0f}")
+
+        # After the minimum 5, give the user the choice to continue or stop
+        if transaction_count >= MIN_TRANSACTIONS:
+            if not input_handler.ask_continue():
+                break
+
+    # ReportGenerator prints the summary (output concern)
+    report.print_report()
+
+
+# Standard Python entry point
+if __name__ == "__main__":
+    main()
