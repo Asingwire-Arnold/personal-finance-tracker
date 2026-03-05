@@ -2,10 +2,7 @@ from abc import ABC, abstractmethod
 
 MIN_TRANSACTIONS = 5
 
-
-# ----------------------------
 # Transaction (Encapsulation)
-# ----------------------------
 class Transaction:
     def __init__(self, description, amount, transaction_type):
         self.__description = description
@@ -21,10 +18,7 @@ class Transaction:
     def get_description(self):
         return self.__description
 
-
-# ----------------------------
 # Abstract Base Account
-# ----------------------------
 class Account(ABC):
     def __init__(self, budget):
         self._budget = budget
@@ -44,19 +38,13 @@ class Account(ABC):
     def get_transactions(self):
         return self._transactions
 
-
-# ----------------------------
 # Withdrawable Account
-# ----------------------------
 class WithdrawableAccount(Account):
     @abstractmethod
     def withdraw(self, description, amount):
         pass
 
-
-# ----------------------------
 # Savings Account
-# ----------------------------
 class SavingsAccount(WithdrawableAccount):
 
     def deposit(self, description, amount):
@@ -74,10 +62,7 @@ class SavingsAccount(WithdrawableAccount):
                 balance += t.get_amount()
         return balance
 
-
-# ----------------------------
 # Utility Functions
-# ----------------------------
 def get_budget():
     while True:
         budget = int(input("Enter your weekly budget (UGX): "))
@@ -113,10 +98,7 @@ def print_report(account):
     print("End of Report")
     print("=" * 45)
 
-
-# ----------------------------
 # Main Program
-# ----------------------------
 def main():
     budget = get_budget()
     account = SavingsAccount(budget)
